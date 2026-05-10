@@ -1,0 +1,170 @@
+Interview Answer
+“If a pod is continuously restarting, first I check the pod status and logs to identify the root cause. Then I verify events, resource limits, probes, application errors, and node-level issues. Based on the findings, I fix the issue and redeploy or restart the pod.”
+
+Step-by-Step Troubleshooting
+1. Check Pod Status
+kubectl get pods
+Example output:
+myapp-pod   0/1   CrashLoopBackOff
+CrashLoopBackOff means:
+Container starts
+Crashes
+Kubernetes restarts it repeatedly
+
+2. Describe the Pod
+kubectl describe pod <pod-name>
+This shows:
+Events
+Restart reason
+Probe failures
+OOMKilled errors
+Image pull issues
+
+Example:
+Reason: OOMKilled
+Meaning:
+Container exceeded memory limit.
+
+3. Check Container Logs
+kubectl logs <pod-name>
+If pod restarted multiple times:
+kubectl logs <pod-name> --previous
+This is very important because current logs may be empty after restart.
+
+Common Reasons for Restarting Pods
+A. Application Crash
+Example:
+
+
+Null pointer exception
+
+
+Wrong configuration
+
+
+Database connection failure
+
+
+Check:
+kubectl logs <pod-name>
+Fix:
+
+
+Correct application code/configuration
+
+
+Redeploy application
+
+
+
+B. OOMKilled (Out of Memory)
+Container memory exceeded.
+Check:
+kubectl describe pod <pod-name>
+Example:
+Last State: TerminatedReason: OOMKilled
+Fix:
+Increase memory limits:
+resources:  requests:    memory: "512Mi"  limits:    memory: "1Gi"
+
+C. Liveness Probe Failure
+If liveness probe fails continuously, Kubernetes restarts the container.
+Example:
+livenessProbe:  httpGet:    path: /health    port: 8080
+Possible issues:
+
+
+Wrong path
+
+
+App startup delay
+
+
+Wrong port
+
+
+Fix:
+
+
+Correct endpoint
+
+
+Increase delay
+
+
+initialDelaySeconds: 60
+
+D. Image Pull Issues
+Example:
+
+
+Wrong image tag
+
+
+Private registry authentication issue
+
+
+Check:
+kubectl describe pod <pod-name>
+You may see:
+ImagePullBackOff
+Fix:
+Correct image name/tag
+Configure imagePullSecrets
+
+E. Configuration or Secret Missing
+Example:
+
+Missing environment variable
+
+ConfigMap not mounted
+
+
+Secret not found
+
+
+Check logs and events.
+Fix:
+
+
+Create correct ConfigMap/Secret
+
+
+Update deployment
+
+
+
+F. Node Resource Problem
+Node may not have enough:
+
+
+CPU
+
+
+Memory
+
+
+Disk
+
+
+Check node:
+kubectl describe node <node-name>
+
+Useful Commands
+Check Events
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+Check Resource Usage
+kubectl top pod
+
+Restart Deployment
+kubectl rollout restart deployment <deployment-name>
+
+Real-Time Example (Interview Style)
+“We had a Spring Boot application pod going into CrashLoopBackOff. I checked the pod logs using kubectl logs --previous and found database connection failures. The DB hostname in ConfigMap was incorrect. After updating the ConfigMap and restarting the deployment, the pod became healthy.”
+
+Important Restart States
+StatusMeaningCrashLoopBackOffContainer crashing repeatedlyErrorApplication/container failedOOMKilledOut of memoryImagePullBackOffCannot pull imageEvictedNode resource pressure
+
+Short Interview Version
+“If a pod continuously restarts, I first check kubectl describe pod and container logs. Then I verify application errors, liveness/readiness probes, resource limits, configuration issues, and node health. After identifying the root cause, I fix the issue and restart or redeploy the pod.”
